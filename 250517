@@ -1,7 +1,6 @@
 # cdコマンドでpsql.exeのあるフォルダまで移動する
 cd C:\Program Files\PostgreSQL\17\bin
 
-
 # ログインする
 psql.exe -U postgres
 
