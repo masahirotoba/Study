@@ -1,0 +1,19 @@
+# テーブルの作成方法
+shop=# CREATE TABLE Shohin (
+shop(#  Shohin_id CHAR(4) NOT NULL,
+shop(#  name VARCHAR(100)
+shop(# );
+CREATE TABLE
+
+# 途中で改行する方法
+入力途中で Enter キーを押すと、プロンプトが shop=# から shop-# に変わる
+これは入力が継続中であることを表す
+
+# 記号の変化
+shop=# → 通常の状態（トランザクションなし）
+shop-# → トランザクション中の状態
+shop(# → 括弧が開いている状態
+
+# テーブルを削除する方法
+shop=# DROP TABLE Shohin;
+DROP TABLE
