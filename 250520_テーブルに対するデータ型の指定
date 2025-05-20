@@ -1,0 +1,30 @@
+# 1行ずつ入力していく
+shop=# CREATE TABLE Shohin(
+shop(# shohin_id CHAR(4) NOT NULL,
+shop(# shohin_mei VARCHAR(100) NOT NULL,
+shop(# shohin_bunrui VARCHAR(32) NOT NULL,
+shop(# hanbai_tanka INTEGER ,
+shop(# shiire_tanka INTEGER ,
+shop(# torokubi DATE ,
+shop(# PRIMARY KEY (shohin_id)
+shop(# );
+CREATE TABLE
+
+# テーブルに対する型を指定する
+CREATE TABLE Shohin(
+ shohin_id CHAR(4) NOT NULL,
+ shohin_mei VARCHAR(100) NOT NULL,
+ shohin_bunrui VARCHAR(32) NOT NULL,
+ hanbai_tanka INTEGER,
+ shiire_tanka INTEGER,
+ torokubi DATE,
+ PRIMARY KEY (shohin_id)
+);
+
+# SQLファイルをアップロードできる
+\i C:/Users/ユーザー名/フォルダ名/○○.sql
+
+# \i コマンドの機能
+- 「include」または「input」の略
+- 指定したファイル内のSQLコマンドやpsqlコマンドを読み込んで実行します
+- SQLスクリプトファイルを実行するための最も一般的な方法です
