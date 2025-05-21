@@ -1,0 +1,106 @@
+# テーブルに行を挿入
+shop=# INSERT INTO Shohin VALUES('0001', 'Tシャツ', '衣服', 1000, 500, '2009-09-11');
+INSERT 0 1
+
+# 1行目の中身を全て取り出す
+SELECT * FROM Shohin WHERE shohin_id = '0001';
+
+# 全てを出力する
+SELECT * FROM Shohin;
+
+# 1列だけ出力
+shop=# SELECT Shohin_id FROM Shohin;
+ shohin_id
+-----------
+ 0001
+ 0002
+ 0003
+ 0004
+ 0005
+ 0006
+ 0007
+ 0008
+(8 行)
+
+# 重複を排除
+shop=# SELECT DISTINCT shohin_bunrui FROM Shohin;
+ shohin_bunrui
+---------------
+ キッチン用品
+ 衣服
+ 事務用品
+(3 行)
+
+# 2つ取り出す
+shop=# SELECT shohin_mei, shohin_bunrui FROM Shohin;
+   shohin_mei   | shohin_bunrui
+----------------+---------------
+ Tシャツ        | 衣服
+ 穴あけパンチ   | 事務用品
+ カッターシャツ | 衣服
+ 包丁           | キッチン用品
+ 圧力鍋         | キッチン用品
+ フォーク       | キッチン用品
+ おろしがね     | キッチン用品
+ ボールペン     | 事務用品
+(8 行)
+
+# WHERE句を使って行を指定
+shop=# SELECT shohin_mei, shohin_bunrui FROM Shohin WHERE shohin_bunrui = '衣服';
+   shohin_mei   | shohin_bunrui
+----------------+---------------
+ Tシャツ        | 衣服
+ カッターシャツ | 衣服
+(2 行)
+
+# 'キッチン用品'の行だけ出力する
+shop=# SELECT * FROM Shohin WHERE shohin_bunrui = 'キッチン用品';
+ shohin_id | shohin_mei | shohin_bunrui | hanbai_tanka | shiire_tanka |  torokubi
+-----------+------------+---------------+--------------+--------------+------------
+ 0004      | 包丁       | キッチン用品  |         3000 |         2800 | 2009-09-20
+ 0005      | 圧力鍋     | キッチン用品  |         6800 |         5000 | 2009-01-15
+ 0006      | フォーク   | キッチン用品  |          500 |              | 2009-09-20
+ 0007      | おろしがね | キッチン用品  |          880 |          790 | 2008-04-28
+(4 行)
+
+# WHERE句で見たい条件を指定
+shop=# SELECT shohin_mei FROM Shohin WHERE shohin_bunrui = '衣服';
+   shohin_mei
+----------------
+ Tシャツ
+ カッターシャツ
+(2 行)
+
+# コマンドプロンプトを終了
+exit
+
+# SELECT文が列を指定する理由
+データベースの設計思想と実際の利用パターンに根ざしている
+- リレーショナルデータベースはテーブル（表）で構成され、列が属性（項目）、行がレコード（データの1件分）を表します
+- データ操作は「どの属性（列）を」「どのレコード（行）から」取得するかという考え方に基づいています
+- 多くの場合、全ての属性（列）は必要なく、必要な属性のみを取得するほうが効率的です
+- 例：顧客情報から「氏名と電話番号だけ」取得するケースは多いですが、「3番目の顧客だけ」を取得するケースは稀です
+
+# 行の選択は別の句（WHERE句）で行う設計
+- WHERE句を使って「どの行を」選択するかを指定します
+- SELECT句では「どの列を」選択するかを指定します
+- この分離により、クエリがより構造化されて理解しやすくなります
+
+sqlSELECT 列1, 列2, 列3  -- どの属性（列）を取得するか
+FROM テーブル名
+WHERE 条件            -- どのレコード（行）を対象とするか
+
+# 歴史的な理由
+SQL言語はリレーショナル代数に基づいており、射影演算（projection）は列の選択を意味します
+最初のSQLの設計から、この「列指向」の思想が採用されています
+
+# 実際の使い方の例
+sql-- 価格だけが知りたい場合（列の選択）
+SELECT hanbai_tanka FROM Shohin;
+
+-- 特定の商品だけが知りたい場合（行の選択）
+SELECT * FROM Shohin WHERE shohin_id = '0001';
+
+-- 特定の列の特定の行だけが知りたい場合（両方を使用）
+SELECT shohin_mei, hanbai_tanka FROM Shohin WHERE shohin_bunrui = '衣服';
+このように、SELECT文の設計は「どの属性（列）を」「どのレコード（行）から」取得するかという2段階の選択プロセスを反映しており、それがSQLの基本構造になっています。
