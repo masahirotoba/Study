@@ -1,0 +1,91 @@
+# 2倍の金額を出力
+SELECT shohin_mei, hanbai_tanka * 2 FROM Shohin;
+
+# "500円以上の商品を調べてみる"
+shop=# SELECT shohin_mei AS "500円以上の商品" FROM Shohin WHERE hanbai_tanka >= 500;
+ 500円以上の商品
+-----------------
+ Tシャツ
+ 穴あけパンチ
+ カッターシャツ
+ 包丁
+ 圧力鍋
+ フォーク
+ おろしがね
+(7 行)
+
+# 販売単価が500円でないモノ
+shop=# SELECT shohin_mei, shohin_bunrui FROM Shohin WHERE hanbai_tanka <> 500;
+   shohin_mei   | shohin_bunrui
+----------------+---------------
+ Tシャツ        | 衣服
+ カッターシャツ | 衣服
+ 包丁           | キッチン用品
+ 圧力鍋         | キッチン用品
+ おろしがね     | キッチン用品
+ ボールペン     | 事務用品
+(6 行)
+
+# 利益を出してみる
+shop=# SELECT shohin_mei, hanbai_tanka - shiire_tanka AS "利益" FROM Shohin;
+   shohin_mei   | 利益
+----------------+------
+ Tシャツ        |  500
+ 穴あけパンチ   |  180
+ カッターシャツ | 1200
+ 包丁           |  200
+ 圧力鍋         | 1800
+ フォーク       |
+ おろしがね     |   90
+ ボールペン     |
+(8 行)
+
+# AND演算子（キッチン用品かつ販売単価が3000円以上）
+shop=# SELECT shohin_mei AS "3000円以上のキッチン用品" FROM Shohin WHERE shohin_bunrui = 'キッチン用品' AND hanbai_tanka >=3000;
+ 3000円以上のキッチン用品
+--------------------------
+ 包丁
+ 圧力鍋
+(2 行)
+
+# ASキーワードは順番を間違えても、一応は出力された
+shop=# SELECT shohin_bunrui FROM Shohin AS "商品分類";
+ shohin_bunrui
+---------------
+ 衣服
+ 事務用品
+ 衣服
+ キッチン用品
+ キッチン用品
+ キッチン用品
+ キッチン用品
+ 事務用品
+(8 行)
+
+# このASキーワードはきちんと出力された
+shop=# SELECT shohin_bunrui AS "商品分類" FROM Shohin;
+   商品分類
+--------------
+ 衣服
+ 事務用品
+ 衣服
+ キッチン用品
+ キッチン用品
+ キッチン用品
+ キッチン用品
+ 事務用品
+(8 行)
+
+# こんな風に書くとわかりやすい
+shop=# SELECT hanbai_tanka AS "単価", shohin_mei AS "商品名" FROM Shohin;
+ 単価 |     商品名
+------+----------------
+ 1000 | Tシャツ
+  500 | 穴あけパンチ
+ 4000 | カッターシャツ
+ 3000 | 包丁
+ 6800 | 圧力鍋
+  500 | フォーク
+  880 | おろしがね
+  100 | ボールペン
+(8 行)
