@@ -1,0 +1,92 @@
+# COUNT関数の使い方
+shop=# SELECT COUNT(*) FROM Shohin;
+ count
+-------
+     8
+(1 行)
+
+# 列を数えても同じ
+shop=# SELECT COUNT(shohin_bunrui) FROM Shohin;
+ count
+-------
+     8
+(1 行)
+
+# NULLを除外する
+shop=# SELECT COUNT(shiire_tanka) FROM Shohin;
+ count
+-------
+     6
+(1 行)
+
+# 合計のSUM関数
+shop=# SELECT SUM(hanbai_tanka) FROM Shohin;
+  sum
+-------
+ 16780
+(1 行)
+
+# SUM関数を2つ使ってみる
+shop=# SELECT SUM(hanbai_tanka) , SUM(shiire_tanka) FROM Shohin;
+  sum  |  sum
+-------+-------
+ 16780 | 12210
+(1 行)
+
+# ASを使うとわかりやすい
+shop=# SELECT SUM(hanbai_tanka) AS "販売単価の合計", SUM(shiire_tanka) AS "仕入れ単価の合計" FROM Shohin;
+ 販売単価の合計 | 仕入れ単価の合計
+----------------+------------------
+          16780 |            12210
+(1 行)
+
+# 平均を求めるAVG関数
+shop=# SELECT AVG(shiire_tanka) FROM Shohin;
+          avg
+-----------------------
+ 2035.0000000000000000
+(1 行)
+
+# 最大と最小のMAXとMIN
+shop=# SELECT MAX(shiire_tanka), MIN(shiire_tanka) FROM Shohin;
+ max  | min
+------+-----
+ 5000 | 320
+(1 行)
+
+# 通常のDISTINCTの使い方
+shop=# SELECT DISTINCT shohin_bunrui FROM Shohin;
+ shohin_bunrui
+---------------
+ キッチン用品
+ 衣服
+ 事務用品
+(3 行)
+
+# これでも同じなのかな
+shop=# SELECT DISTINCT(shohin_bunrui) FROM Shohin;
+ shohin_bunrui
+---------------
+ キッチン用品
+ 衣服
+ 事務用品
+(3 行)
+
+# 重複なしで数える
+shop=# SELECT COUNT(DISTINCT shohin_bunrui) FROM Shohin;
+ count
+-------
+     3
+(1 行)
+
+# 通常の使い方
+op=# SELECT COUNT(shohin_bunrui) FROM Shohin;
+ count
+-------
+     8
+(1 行)
+
+# これはエラーに
+shop=# SELECT shohin_bunrui, COUNT(DISTINCT shohin_bunrui) FROM Shohin;
+ERROR:  列"shohin.shohin_bunrui"はGROUP BY句で指定するか、集約関数内で使用しなければなりません
+行 1: SELECT shohin_bunrui, COUNT(DISTINCT shohin_bunrui) FROM Sho...
