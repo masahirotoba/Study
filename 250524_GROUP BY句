@@ -1,0 +1,104 @@
+# サンプルのGROUP BI
+shop=# SELECT shohin_bunrui, COUNT(*) FROM Shohin GROUP BY shohin_bunrui;
+ shohin_bunrui | count
+---------------+-------
+ キッチン用品  |     4
+ 衣服          |     2
+ 事務用品      |     2
+(3 行)
+
+# 試しに書く
+shop=# SELECT shohin_bunrui FROM Shohin GROUP BY shohin_bunrui;
+ shohin_bunrui
+---------------
+ キッチン用品
+ 衣服
+ 事務用品
+(3 行)
+
+# これはエラーになる
+shohin_meiでGROUP BYしようと思ったがなぜか
+shop=# SELECT shohin_bunrui FROM Shohin GROUP BY shohin_mei;
+ERROR:  列"shohin.shohin_bunrui"はGROUP BY句で指定するか、集約関数内で使用しなければなりません
+
+# これは出てくる
+shop=# SELECT shohin_bunrui FROM Shohin GROUP BY shohin_bunrui;
+ shohin_bunrui
+---------------
+ キッチン用品
+ 衣服
+ 事務用品
+(3 行)
+
+# これと結果は同じ
+shop=# SELECT DISTINCT shohin_bunrui FROM Shohin;
+ shohin_bunrui
+---------------
+ キッチン用品
+ 衣服
+ 事務用品
+(3 行)
+
+# 他にもこうなる
+shop=# SELECT shohin_bunrui FROM Shohin GROUP BY DISTINCT(shohin_mei);
+ERROR:  列"shohin.shohin_bunrui"はGROUP BY句で指定するか、集約関数内で使用しなければなりません
+行 1: SELECT shohin_bunrui FROM Shohin GROUP BY DISTINCT(shohin_me...
+             ^
+shop=# SELECT shohin_bunrui FROM Shohin GROUP BY DISTINCT(shohin_bunrui);
+ shohin_bunrui
+---------------
+ キッチン用品
+ 衣服
+ 事務用品
+(3 行)
+
+# これもSELECTがGROUP BYに含まれてないので、エラーに
+shop=# SELECT shohin_bunrui, COUNT(*) FROM Shohin GROUP BY shohin_mei;
+ERROR:  列"shohin.shohin_bunrui"はGROUP BY句で指定するか、集約関数内で使用しなければなりません
+行 1: SELECT shohin_bunrui, COUNT(*) FROM Shohin GROUP BY shohin_m...
+
+# これはOK
+shop=# SELECT shohin_bunrui , COUNT(*) FROM Shohin GROUP BY shohin_bunrui;
+ shohin_bunrui | count
+---------------+-------
+ キッチン用品  |     4
+ 衣服          |     2
+ 事務用品      |     2
+(3 行)
+
+# これも同じ（中の動作がいまいちイメージできていない）
+shop=# SELECT shohin_bunrui , COUNT(shohin_bunrui) FROM Shohin GROUP BY shohin_bunrui;
+ shohin_bunrui | count
+---------------+-------
+ キッチン用品  |     4
+ 衣服          |     2
+ 事務用品      |     2
+(3 行)
+
+# WHEREとの組み合わせ
+shop=# SELECT shiire_tanka, COUNT(*) FROM Shohin WHERE shohin_bunrui = '衣服' GROUP BY shiire_tanka;
+ shiire_tanka | count
+--------------+-------
+          500 |     1
+         2800 |     1
+(2 行)
+
+# GROUP BYの個所だけ変えるとエラーに
+shop=# SELECT shiire_tanka, COUNT(*) FROM Shohin WHERE shohin_bunrui = '衣服' GROUP BY shohin_bunrui;
+ERROR:  列"shohin.shiire_tanka"はGROUP BY句で指定するか、集約関数内で使用しなければなりません
+行 1: SELECT shiire_tanka, COUNT(*) FROM Shohin WHERE shohin_bunru...
+
+# エラーの理由
+SQLのGROUP BYルール：
+SELECT句に書かれたカラムは、以下のいずれかの条件を満たす必要があります。
+
+GROUP BY句に含まれているカラム
+集約関数（SUM, COUNT, AVG, MAX, MINなど）で囲まれているカラム
+
+あなたのクエリでは：
+
+SELECT句に shohin_bunrui を指定
+GROUP BY句には shohin_mei を指定
+
+この場合、shohin_bunrui カラムはGROUP BY句に含まれておらず、また集約関数でも囲まれていないため、エラーになります。
+
