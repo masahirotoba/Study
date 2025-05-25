@@ -1,0 +1,135 @@
+# GROUP BYの復習
+shop=# SELECT shohin_bunrui, COUNT(*) FROM Shohin GROUP BY shohin_bunrui;
+ shohin_bunrui | count
+---------------+-------
+ キッチン用品  |     4
+ 衣服          |     2
+ 事務用品      |     2
+(3 行)
+
+# HAVING句で更に条件を指定
+shop=# SELECT shohin_bunrui, COUNT(*) FROM Shohin GROUP BY shohin_bunrui HAVING COUNT(*) = 2;
+ shohin_bunrui | count
+---------------+-------
+ 衣服          |     2
+ 事務用品      |     2
+(2 行)
+
+# 分類ごとに販売単価の平均を出す
+shop=# SELECT shohin_bunrui, AVG(hanbai_tanka) FROM Shohin GROUP BY shohin_bunrui;
+ shohin_bunrui |          avg
+---------------+-----------------------
+ キッチン用品  | 2795.0000000000000000
+ 衣服          | 2500.0000000000000000
+ 事務用品      |  300.0000000000000000
+(3 行)
+
+# ここから更にHAVING句で条件を指定（2500円以上に）
+shop=# SELECT shohin_bunrui, AVG(hanbai_tanka) FROM Shohin GROUP BY shohin_bunrui HAVING AVG(hanbai_tanka) >= 2500;
+ shohin_bunrui |          avg
+---------------+-----------------------
+ キッチン用品  | 2795.0000000000000000
+ 衣服          | 2500.0000000000000000
+(2 行)
+
+# GROUP BY句の中に含まれているモノしか、HAVING句で指定できない
+shop=# SELECT shohin_bunrui, COUNT(*) FROM Shohin GROUP BY shohin_bunrui HAVING hanbai_tanka >= 500;
+ERROR:  列"shohin.hanbai_tanka"はGROUP BY句で指定するか、集約関数内で使用しなければなりません
+行 1: ...OUNT(*) FROM Shohin GROUP BY shohin_bunrui HAVING hanbai_tan...
+
+# だからこういうのもダメ
+shop=# SELECT shohin_bunrui, COUNT(*) FROM Shohin GROUP BY shohin_bunrui HAVING shohin_mei = 'ボールペン';
+ERROR:  列"shohin.shohin_mei"はGROUP BY句で指定するか、集約関数内で使用しなければなりません
+行 1: ...OUNT(*) FROM Shohin GROUP BY shohin_bunrui HAVING shohin_mei...
+
+# HAVING句で条件を指定
+shop=# SELECT shohin_bunrui, COUNT(*) FROM Shohin GROUP BY shohin_bunrui HAVING shohin_bunrui = '衣服';
+ shohin_bunrui | count
+---------------+-------
+ 衣服          |     2
+(1 行)
+
+# これはダメ（曖昧になるので）
+shop=# SELECT shohin_bunrui, COUNT(*) FROM Shohin WHERE shohin_bunrui = '衣服';
+ERROR:  列"shohin.shohin_bunrui"はGROUP BY句で指定するか、集約関数内で使用しなければなりません
+行 1: SELECT shohin_bunrui, COUNT(*) FROM Shohin WHERE shohin_bunr...
+             ^
+
+# これはいい（なぜだろうか）
+shop=# SELECT shohin_bunrui, COUNT(*) FROM Shohin WHERE shohin_bunrui = '衣服' GROUP BY shohin_bunrui;
+ shohin_bunrui | count
+---------------+-------
+ 衣服          |     2
+(1 行)
+
+# ダメな理由のメモ
+
+# なぜGROUP BY句があるとOKで、ないとダメなのか
+
+## 両者の違いを明確に説明
+
+ポイントは、SQLの処理順序と「どの行の値を表示すべきか」という問題です。
+
+### 1つ目のクエリ（エラー）
+```sql
+SELECT shohin_bunrui, COUNT(*) FROM Shohin WHERE shohin_bunrui = '衣服';
+```
+
+このクエリでは：
+1. WHERE句で「衣服」のみをフィルタリング → 2行になる
+2. COUNT(*)で2行を数える → 結果は「2」
+3. shohin_bunruiは2行あるため、**どちらの行の値を表示すべきか不明確**
+   - 1行目の「衣服」？ 2行目の「衣服」？
+   - 両方同じ値だから問題ないように見えますが、SQLエンジンはそれを知りません
+
+### 2つ目のクエリ（正常）
+```sql
+SELECT shohin_bunrui, COUNT(*) FROM Shohin WHERE shohin_bunrui = '衣服' GROUP BY shohin_bunrui;
+```
+
+このクエリでは：
+1. WHERE句で「衣服」のみをフィルタリング → 2行になる
+2. GROUP BY shohin_bunruiで「衣服」という値でグループ化 → 1グループになる
+3. 各グループについて、そのグループの代表値（shohin_bunrui）とCOUNT(*)を計算
+   - 「衣服」グループ：shohin_bunrui = '衣服', COUNT(*) = 2
+   - **明確に「各グループの代表値」と指定されているため曖昧さがない**
+
+## わかりやすい例え話
+
+教室にいる生徒を例に考えてみましょう：
+
+### 例1（GROUP BYなし・エラー相当）
+「教室内の男子生徒の名前と、男子生徒の総数を教えてください」
+- 男子生徒が山田くん、佐藤くん、田中くんの3人いる場合
+- 総数は3人だが、「名前」はどの生徒の名前を答えればいいのか不明確
+
+### 例2（GROUP BY付き・正常相当）
+「教室内の生徒を性別ごとにグループ分けし、各グループの性別と人数を教えてください」
+- 男子グループ：「男子」、3人
+- 女子グループ：「女子」、2人
+- 明確に「各グループの性別」と指定されているため曖昧さがない
+
+## 技術的な説明
+
+SQLの集約処理では以下のルールがあります：
+
+1. 集約関数（COUNT, SUM, AVGなど）は複数行から1つの値を計算
+2. 非集約カラム（通常のカラム）は行ごとに異なる値を持つ可能性がある
+3. SELECT句に両方が含まれる場合は、非集約カラムの扱いを明確にする必要がある
+4. GROUP BYはその役割を果たし、「このカラムの値でグループ化し、各グループの代表値として表示する」という意味を持つ
+
+## 実際の処理順序の違い
+
+1. GROUP BYなし（エラー）：
+   - WHERE → SELECT（集約と非集約の混在で曖昧さ発生）
+
+2. GROUP BY付き（正常）：
+   - WHERE → GROUP BY → 各グループに対するSELECT（曖昧さなし）
+
+## まとめ
+
+簡潔に言えば：
+- 1つ目のクエリ：「どの行の値を表示すべきか」が不明確でエラー
+- 2つ目のクエリ：「各グループの代表値」と明示されているため正常
+
+この違いが、なぜ1つ目がエラーで2つ目が正常なのかの理由です。SQLは「曖昧さをなくし、一貫性のある結果を保証する」という原則に基づいて設計されています。
