@@ -1,0 +1,153 @@
+# どれを出力すればいいのかわからないので、ダメ
+shop=# SELECT shohin_bunrui FROM Shohin GROUP BY torokubi;
+ERROR:  列"shohin.shohin_bunrui"はGROUP BY句で指定するか、集約関数内で使用しなければなりません
+行 1: SELECT shohin_bunrui FROM Shohin GROUP BY torokubi;
+             ^
+# これももちろんダメ
+shop=# SELECT shohin_mei FROM Shohin GROUP BY shohin_bunrui;
+ERROR:  列"shohin.shohin_mei"はGROUP BY句で指定するか、集約関数内で使用しなければなりません
+行 1: SELECT shohin_mei FROM Shohin GROUP BY shohin_bunrui;
+             ^
+
+# これはもちろんOK
+shop=# SELECT shohin_mei FROM Shohin GROUP BY shohin_mei;
+   shohin_mei
+----------------
+ 穴あけパンチ
+ フォーク
+ 圧力鍋
+ Tシャツ
+ ボールペン
+ おろしがね
+ カッターシャツ
+ 包丁
+(8 行)
+
+# こういう条件の指定はできる
+shop=# SELECT shohin_mei, hanbai_tanka FROM Shohin WHERE shiire_tanka >= 1500;
+   shohin_mei   | hanbai_tanka
+----------------+--------------
+ カッターシャツ |         4000
+ 包丁           |         3000
+ 圧力鍋         |         6800
+(3 行)
+
+# ランダムに出力されてしまう
+shop=# SELECT shohin_id, shohin_mei, hanbai_tanka FROM Shohin;
+ shohin_id |   shohin_mei   | hanbai_tanka
+-----------+----------------+--------------
+ 0001      | Tシャツ        |         1000
+ 0002      | 穴あけパンチ   |          500
+ 0003      | カッターシャツ |         4000
+ 0004      | 包丁           |         3000
+ 0005      | 圧力鍋         |         6800
+ 0006      | フォーク       |          500
+ 0007      | おろしがね     |          880
+ 0008      | ボールペン     |          100
+(8 行)
+
+# 並べ替え
+shop=# SELECT shohin_id, shohin_mei, hanbai_tanka FROM Shohin ORDER BY hanbai_tanka;
+ shohin_id |   shohin_mei   | hanbai_tanka
+-----------+----------------+--------------
+ 0008      | ボールペン     |          100
+ 0006      | フォーク       |          500
+ 0002      | 穴あけパンチ   |          500
+ 0007      | おろしがね     |          880
+ 0001      | Tシャツ        |         1000
+ 0004      | 包丁           |         3000
+ 0003      | カッターシャツ |         4000
+ 0005      | 圧力鍋         |         6800
+(8 行)
+
+# 大きい順に
+shop=# SELECT shohin_id, shohin_mei, hanbai_tanka FROM Shohin ORDER BY hanbai_tanka DESC;
+ shohin_id |   shohin_mei   | hanbai_tanka
+-----------+----------------+--------------
+ 0005      | 圧力鍋         |         6800
+ 0003      | カッターシャツ |         4000
+ 0004      | 包丁           |         3000
+ 0001      | Tシャツ        |         1000
+ 0007      | おろしがね     |          880
+ 0002      | 穴あけパンチ   |          500
+ 0006      | フォーク       |          500
+ 0008      | ボールペン     |          100
+(8 行)
+
+# 小さい順に
+shop=# SELECT shohin_id, shohin_mei, hanbai_tanka FROM Shohin ORDER BY hanbai_tanka ASC;
+ shohin_id |   shohin_mei   | hanbai_tanka
+-----------+----------------+--------------
+ 0008      | ボールペン     |          100
+ 0006      | フォーク       |          500
+ 0002      | 穴あけパンチ   |          500
+ 0007      | おろしがね     |          880
+ 0001      | Tシャツ        |         1000
+ 0004      | 包丁           |         3000
+ 0003      | カッターシャツ |         4000
+ 0005      | 圧力鍋         |         6800
+(8 行)
+
+# ないモノでも並べ替えできる
+shop=# SELECT shohin_id, shohin_mei FROM Shohin ORDER BY hanbai_tanka;
+ shohin_id |   shohin_mei
+-----------+----------------
+ 0008      | ボールペン
+ 0006      | フォーク
+ 0002      | 穴あけパンチ
+ 0007      | おろしがね
+ 0001      | Tシャツ
+ 0004      | 包丁
+ 0003      | カッターシャツ
+ 0005      | 圧力鍋
+(8 行)
+
+# 同じモノがあった時は、ID順に（2つの条件を指定）
+shop=# SELECT shohin_id, shohin_mei, hanbai_tanka, shiire_tanka FROM Shohin ORDER BY hanbai_tanka, shohin_id;
+ shohin_id |   shohin_mei   | hanbai_tanka | shiire_tanka
+-----------+----------------+--------------+--------------
+ 0008      | ボールペン     |          100 |
+ 0002      | 穴あけパンチ   |          500 |          320
+ 0006      | フォーク       |          500 |
+ 0007      | おろしがね     |          880 |          790
+ 0001      | Tシャツ        |         1000 |          500
+ 0004      | 包丁           |         3000 |         2800
+ 0003      | カッターシャツ |         4000 |         2800
+ 0005      | 圧力鍋         |         6800 |         5000
+(8 行)
+
+# NULLは最後に
+shop=# SELECT shohin_id, shohin_mei, hanbai_tanka, shiire_tanka FROM Shohin ORDER BY shiire_tanka;
+ shohin_id |   shohin_mei   | hanbai_tanka | shiire_tanka
+-----------+----------------+--------------+--------------
+ 0002      | 穴あけパンチ   |          500 |          320
+ 0001      | Tシャツ        |         1000 |          500
+ 0007      | おろしがね     |          880 |          790
+ 0003      | カッターシャツ |         4000 |         2800
+ 0004      | 包丁           |         3000 |         2800
+ 0005      | 圧力鍋         |         6800 |         5000
+ 0006      | フォーク       |          500 |
+ 0008      | ボールペン     |          100 |
+(8 行)
+
+# これは動かない
+shop=# SELECT shohin_id, shohin_mei, hanbai_tanka, shiire_tanka FROM Shohin ORDER BY COUNT(*);
+ERROR:  列"shohin.shohin_id"はGROUP BY句で指定するか、集約関数内で使用しなければなりません
+行 1: SELECT shohin_id, shohin_mei, hanbai_tanka, shiire_tanka FRO...
+             ^
+
+# 分類がないので、GROUP BYできない
+shop=# SELECT shohin_id, shohin_mei, hanbai_tanka, shiire_tanka FROM Shohin GROUP BY shohin_bunrui ORDER BY COUNT(*);
+ERROR:  列"shohin.shohin_id"はGROUP BY句で指定するか、集約関数内で使用しなければなりません
+行 1: SELECT shohin_id, shohin_mei, hanbai_tanka, shiire_tanka FRO...
+             ^
+
+# これはきちんと動く
+shop=# SELECT shohin_bunrui, COUNT(*) FROM Shohin GROUP BY shohin_bunrui ORDER BY COUNT(*);
+ shohin_bunrui | count
+---------------+-------
+ 衣服          |     2
+ 事務用品      |     2
+ キッチン用品  |     4
+(3 行)
+
