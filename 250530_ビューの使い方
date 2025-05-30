@@ -1,0 +1,32 @@
+# 通常のSELECT文
+shop=# SELECT shohin_bunrui, SUM(hanbai_tanka), SUM(shiire_tanka) FROM Shohin GROUP BY shohin_bunrui;
+ shohin_bunrui |  sum  | sum
+---------------+-------+------
+ キッチン用品  | 11180 | 8590
+ 衣服          |  5000 | 3300
+ 事務用品      |   600 |  320
+(3 行)
+
+# ビューを作る
+shop=# CREATE VIEW ShohinSum (shohin_bunrui, cnt_shohin) AS SELECT shohin_bunrui, COUNT(*) FROM Shohin GROUP BY shohin_bunrui;
+CREATE VIEW
+
+# ビューを使う
+shop=# SELECT shohin_bunrui, cnt_shohin FROM ShohinSum;
+ shohin_bunrui | cnt_shohin
+---------------+------------
+ キッチン用品  |          4
+ 衣服          |          2
+ 事務用品      |          2
+(3 行)
+
+# ビューを作る
+shop=# CREATE VIEW ShohinSumJim (shohin_bunrui, cnt_shohin) AS SELECT shohin_bunrui, cnt_shohin FROM ShohinSum WHERE shohin_bunrui = '事務用品';
+CREATE VIEW
+
+# ビューが作られていることを確認
+shop=# SELECT shohin_bunrui, cnt_shohin FROM ShohinSumJim;
+ shohin_bunrui | cnt_shohin
+---------------+------------
+ 事務用品      |          2
+(1 行)
