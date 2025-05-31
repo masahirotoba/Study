@@ -1,0 +1,55 @@
+# テーブル内のビューを調べる
+shop=# \dv
+              リレーション一覧
+ スキーマ |     名前     | タイプ |  所有者
+----------+--------------+--------+----------
+ public   | shohinsum    | ビュー | postgres
+ public   | shohinsumjim | ビュー | postgres
+(2 行)
+
+# ビューの中身を確認する
+shop=# \d+ shohinsum;
+                                     ビュー"public.shohinsum"
+      列       |        タイプ         | 照合順序 | Null 値を許容 | デフォルト | ストレージ | 説明
+---------------+-----------------------+----------+---------------+------------+------------+------
+ shohin_bunrui | character varying(32) |          |               |            | extended   |
+ cnt_shohin    | bigint                |          |               |            | plain      |
+ビューの定義:
+ SELECT shohin_bunrui,
+    count(*) AS cnt_shohin
+   FROM shohin
+  GROUP BY shohin_bunrui;
+
+# これもこれもエラーに
+shop=# SELECT column1, column2 FROM ShohinSum;
+ERROR:  列"column1"は存在しません
+行 1: SELECT column1, column2 FROM ShohinSum;
+             ^
+shop=# SELECT shohin_mei, shohin_bunrui FROM ShohinSum;
+ERROR:  列"shohin_mei"は存在しません
+行 1: SELECT shohin_mei, shohin_bunrui FROM ShohinSum;
+             ^
+
+# これはOK
+shop=# SELECT shohin_bunrui, shohin_bunrui FROM ShohinSum;
+ shohin_bunrui | shohin_bunrui
+---------------+---------------
+ キッチン用品  | キッチン用品
+ 衣服          | 衣服
+ 事務用品      | 事務用品
+(3 行)
+
+# 依存するモノは消せない
+shop=# DROP VIEW shohinsum;
+ERROR:  他のオブジェクトが依存しているためビューshohinsumを削除できません
+DETAIL:  ビューshohinsumjimはビューshohinsumに依存しています
+HINT:  依存しているオブジェクトも削除するにはDROP ... CASCADEを使用してください
+
+# 全てを消す場合に
+shop=# DROP VIEW shohinsum CASCADE;
+NOTICE:  削除はビューshohinsumjimへ伝播します
+DROP VIEW
+
+# 確認したらなくなった
+shop=# \dv
+リレーションが見つかりませんでした。
