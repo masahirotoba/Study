@@ -1,0 +1,124 @@
+# テーブルを一覧で確認
+postgres=# \dt
+リレーションが見つかりませんでした。
+
+# 作るとちゃんと出た
+postgres=# \dt
+            リレーション一覧
+ スキーマ |  名前  |  タイプ  |  所有者
+----------+--------+----------+----------
+ public   | shohin | テーブル | postgres
+(1 行)
+
+# 通常のSELECT文だと、何度も出したい結果は大変
+postgres=# SELECT shohin_bunrui, SUM(hanbai_tanka), SUM(shiire_tanka) FROM Shohin GROUP BY shohin_bunrui;
+ shohin_bunrui |  sum  | sum
+---------------+-------+------
+ キッチン用品  | 11180 | 8590
+ 衣服          |  5000 | 3300
+ 事務用品      |   600 |  320
+(3 行)
+
+# それぞれの商品分類ごとに、カウントを出した
+postgres=# SELECT shohin_bunrui, COUNT(*) FROM Shohin GROUP BY shohin_bunrui;
+ shohin_bunrui | count
+---------------+-------
+ キッチン用品  |     4
+ 衣服          |     2
+ 事務用品      |     2
+(3 行)
+
+# そこでビューを使う（列名と中身の2つを定義しないといけない）
+# これは新しく作る列名を、'（シングルクオーテーション）で囲ったのでエラーになった
+postgres=# CREATE VIEW BunruiCount ('商品分類', '点数') AS SELECT shohin_bunrui, COUNT(*) FROM Shohin GROUP BY shohin_bunrui;
+ERROR:  "'商品分類'"またはその近辺で構文エラー
+行 1: CREATE VIEW BunruiCount ('商品分類', '点数') AS SELECT shohi...
+
+# これはうまく作れた
+postgres=# CREATE VIEW BunruiCount (商品分類, 点数) AS SELECT shohin_bunrui, COUNT(*) FROM Shohin GROUP BY shohin_bunrui;
+CREATE VIEW
+
+# 列名と中身の書き方を間違えた
+postgres=# CREATE VIEW Bunruicount (shohin_bunrui, COUNT(*)) AS '商品分類', '点数' FROM Shohin GROUP BY shohin_bunrui;
+ERROR:  "("またはその近辺で構文エラー
+行 1: CREATE VIEW Bunruicount (shohin_bunrui, COUNT(*)) AS '商品分...
+                                                   ^
+# ビューの列名は'（シングルクォーテーション）なしでOK
+postgres=# CREATE VIEW BunruiCount (商品分類, 点数) AS SELECT shohin_bunrui, COUNT(*) FROM Shohin GROUP BY shohin_bunrui;
+CREATE VIEW
+
+# 実際にビューを使ってみる
+postgres=# SELECT 商品分類, 点数 FROM BunruiCount;
+   商品分類   | 点数
+--------------+------
+ キッチン用品 |    4
+ 衣服         |    2
+ 事務用品     |    2
+(3 行)
+
+# 1列だけ出力することも可能
+# これなら何度もCOUNT関数を書かなくて良くなるので、とっても便利
+postgres=# SELECT 点数 FROM BunruiCount;
+ 点数
+------
+    4
+    2
+    2
+(3 行)
+
+# また分類でGROUP BYする必要もなくなった
+postgres=# SELECT 商品分類 FROM BunruiCount;
+   商品分類
+--------------
+ キッチン用品
+ 衣服
+ 事務用品
+(3 行)
+
+# \（バックラッシュ）の意味について
+SQLの `\dv` の `\`（バックスラッシュ）は、**PostgreSQLのpsqlコマンドラインツール専用のメタコマンド**を示しています。
+
+## `\` の意味
+
+**メタコマンドの識別子**
+- 通常のSQL文ではなく、psql独自のコマンドであることを示す
+- psqlクライアントが解釈する特別なコマンド
+
+## 代表的な `\` コマンド
+
+```sql
+\l          -- データベース一覧
+\c dbname   -- データベースに接続
+\dt         -- テーブル一覧
+\dv         -- ビュー一覧
+\di         -- インデックス一覧
+\df         -- 関数一覧
+\dn         -- スキーマ一覧
+\du         -- ユーザー一覧
+\d table    -- テーブル構造表示
+\q          -- psql終了
+\h          -- SQLコマンドヘルプ
+\?          -- psqlコマンドヘルプ
+```
+
+## 重要なポイント
+
+**1. PostgreSQL専用**
+- MySQLやSQL Serverでは使えません
+- psqlクライアントでのみ動作
+
+**2. SQL文ではない**
+- セミコロン（;）は不要
+- SQLエンジンではなくpsqlクライアントが処理
+
+**3. 便利な短縮形**
+- `\dv` = `SELECT table_name FROM information_schema.views;` の短縮版
+- より簡潔で覚えやすい
+
+## 他のDBMSでの同等機能
+
+**MySQL:** `SHOW` コマンド
+**SQL Server:** Management Studio の GUI機能
+**Oracle:** SQL*Plus の独自コマンド
+
+つまり `\` は「このコマンドはpsql専用のメタコマンドですよ」という目印です。
