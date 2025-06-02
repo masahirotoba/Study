@@ -1,0 +1,92 @@
+# これはなぜダメなのか
+shop=# SELECT shohin_bunrui, COUNT(*) FROM Shohin;
+ERROR:  列"shohin.shohin_bunrui"はGROUP BY句で指定するか、集約関数内で使用しなければなりません
+行 1: SELECT shohin_bunrui, COUNT(*) FROM Shohin;
+             ^
+
+# 集約関数を使う場合、SELECT句の非集約列は必ずGROUP BYで指定する必要があるから
+
+# これは面倒なのでビューに
+shop=# SELECT shohin_bunrui, COUNT(*) FROM Shohin GROUP BY shohin_bunrui;
+ shohin_bunrui | count
+---------------+-------
+ キッチン用品  |     4
+ 衣服          |     2
+ 事務用品      |     2
+(3 行)
+
+# ビューを作る
+shop=# CREATE VIEW BunruiCount (商品分類, 点数) AS SELECT shohin_bunrui, COUNT(*) FROM Shohin GROUP BY shohin_bunrui;
+CREATE VIEW
+
+# さっきより短くなった
+shop=# SELECT 商品分類, 点数 FROM BunruiCount;
+   商品分類   | 点数
+--------------+------
+ キッチン用品 |    4
+ 衣服         |    2
+ 事務用品     |    2
+(3 行)
+
+# ビューを一覧で出してみる
+shop=# \dv
+              リレーション一覧
+ スキーマ |    名前     | タイプ |  所有者
+----------+-------------+--------+----------
+ public   | bunruicount | ビュー | postgres
+(1 行)
+
+# ビュー名は小文字でも出力できるみたい
+shop=# SELECT 商品分類, 点数 FROM bunruicount;
+   商品分類   | 点数
+--------------+------
+ キッチン用品 |    4
+ 衣服         |    2
+ 事務用品     |    2
+(3 行)
+
+# ビュー名の大文字小文字について
+PostgreSQL: ビュー名は大文字小文字を区別しない（デフォルト）
+小文字で作成しても大文字で作成しても、同じように参照可能
+
+# 点数が多い順に並び変えたいのですが、なぜダメなのか
+shop=# SELECT shohin_bunrui, COUNT() FROM Shohin ORDER BY COUNT();
+ERROR:  列"shohin.shohin_bunrui"はGROUP BY句で指定するか、集約関数内で使用しなければなりません
+行 1: SELECT shohin_bunrui, COUNT() FROM Shohin ORDER BY COUNT()...
+             ^
+
+# これもさっきと原因は同じで、SELECTが抜けているから
+shohin_bunrui（非集約列）とCOUNT(*)（集約関数）を同時にSELECT
+GROUP BY句が必要なのに記述されていない
+
+# これはGROUP BYしたけどダメ？
+shop=# SELECT shohin_bunrui, COUNT(*) FROM Shohin ORDER BY COUNT(*) GROUP BY shohin_bunrui;
+ERROR:  "GROUP"またはその近辺で構文エラー
+行 1: ...in_bunrui, COUNT(*) FROM Shohin ORDER BY COUNT(*) GROUP BY s...
+                                                           ^
+
+# GROUP BYとORDER BYの順番が違うから動かない。動くのはこっち
+shop=# SELECT shohin_bunrui, COUNT(*) FROM Shohin GROUP BY shohin_bunrui ORDER BY COUNT(*);
+ shohin_bunrui | count
+---------------+-------
+ 衣服          |     2
+ 事務用品      |     2
+ キッチン用品  |     4
+(3 行)
+
+# なぜこれと出力結果が違うのか
+shop=# SELECT shohin_bunrui, COUNT(*) FROM Shohin GROUP BY shohin_bunrui ORDER BY shohin_bunrui;
+ shohin_bunrui | count
+---------------+-------
+ キッチン用品  |     4
+ 衣服          |     2
+ 事務用品      |     2
+(3 行)
+
+# これは文字と数値で並び順が違うから
+ORDER BY shohin_bunrui → 文字
+ORDER BY COUNT(*) → 数値
+
+# 最後は消しておいた
+shop=# DROP VIEW bunruicount;
+DROP VIEW
