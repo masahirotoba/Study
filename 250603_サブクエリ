@@ -1,0 +1,72 @@
+# ビューを作る
+shop=# CREATE VIEW CountBunrui (カテゴリ, 点数) AS SELECT shohin_bunrui, COUNT(*) FROM Shohin GROUP BY shohin_bunrui;
+CREATE VIEW
+
+# ビューを使う
+shop=# SELECT カテゴリ, 点数 FROM CountBunrui;
+   カテゴリ   | 点数
+--------------+------
+ キッチン用品 |    4
+ 衣服         |    2
+ 事務用品     |    2
+(3 行)
+
+# 同じことをサブクエリでやる
+shop=# SELECT カテゴリ, 点数 FROM (SELECT shohin_bunrui AS カテゴリ, COUNT(*) AS 点数 FROM Shohin GROUP BY shohin_bunrui) AS CountBunrui;
+   カテゴリ   | 点数
+--------------+------
+ キッチン用品 |    4
+ 衣服         |    2
+ 事務用品     |    2
+(3 行)
+
+# サブクエリはどんな場合に使いますか？ビューではダメなのでしょうか
+サブクエリとビューはそれぞれ適した場面があります。
+
+## サブクエリが適している場面
+
+**一回限りの複雑な処理**
+```sql
+-- 平均価格より高い商品を今すぐ知りたい場合
+SELECT shohin_mei, hanbai_tanka 
+FROM Shohin 
+WHERE hanbai_tanka > (SELECT AVG(hanbai_tanka) FROM Shohin);
+```
+
+**動的な条件での絞り込み**
+```sql
+-- 特定の日付の売上上位3位の商品を調べる場合
+SELECT * FROM Shohin 
+WHERE shohin_id IN (
+    SELECT shohin_id FROM Uriage 
+    WHERE uriage_bi = '2024-01-15' 
+    ORDER BY kingaku DESC LIMIT 3
+);
+```
+
+**レポートやアドホックな分析**
+毎回異なる条件で分析する場合、その都度サブクエリを書く方が柔軟です。
+
+## ビューが適している場面
+
+**繰り返し使用する定型処理**
+```sql
+-- 毎日の売上レポートで使う集計
+CREATE VIEW DailySales AS 
+SELECT uriage_bi, SUM(kingaku) as total_sales FROM Uriage GROUP BY uriage_bi;
+```
+
+**複雑なテーブル結合の簡素化**
+5つのテーブルを結合する複雑なクエリを、ビューにしておけば簡単に呼び出せます。
+
+**セキュリティ管理**
+特定のユーザーには生のテーブルではなく、必要な列だけを含むビューにアクセスさせる場合。
+
+## まとめ
+
+- **一回限り・実験的** → サブクエリ
+- **定型業務・再利用** → ビュー
+- **動的な条件** → サブクエリ
+- **固定的な処理** → ビュー
+
+どちらも技術的には同じことができますが、使い分けることで保守性や効率性が向上します。
