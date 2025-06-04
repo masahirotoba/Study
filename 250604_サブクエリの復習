@@ -1,0 +1,114 @@
+# PostgreSQLを環境変数に登録する
+パスを移動しなくても、カンタンに実行できるようになった
+
+# まずは通常のSELECT文
+shop=# SELECT shohin_bunrui, COUNT(*) FROM Shohin GROUP BY shohin_bunrui;
+ shohin_bunrui | count
+---------------+-------
+ キッチン用品  |     4
+ 衣服          |     2
+ 事務用品      |     2
+(3 行)
+
+# ビューを作る
+shop=# CREATE VIEW BunruiCount (カテゴリ, 点数) AS SELECT shohin_bunrui, COUNT(*) FROM Shohin GROUP BY shohin_bunrui;
+CREATE VIEW
+
+# ビューを使う
+shop=# SELECT カテゴリ, 点数 FROM BunruiCount;
+   カテゴリ   | 点数
+--------------+------
+ キッチン用品 |    4
+ 衣服         |    2
+ 事務用品     |    2
+(3 行)
+
+# 同じことをサブクエリで
+shop=# SELECT カテゴリ, 点数 FROM (SELECT shohin_bunrui AS カテゴリ, COUNT(*) AS 点数 FROM Shohin GROUP BY shohin_bunrui) AS CountBunrui;
+   カテゴリ   | 点数
+--------------+------
+ キッチン用品 |    4
+ 衣服         |    2
+ 事務用品     |    2
+(3 行)
+
+# サブクエリの結果を合計してみる
+SELECT SUM(点数) AS 合計点数 
+FROM (
+    SELECT shohin_bunrui AS カテゴリ, COUNT(*) AS 点数 
+    FROM Shohin 
+    GROUP BY shohin_bunrui
+) AS CountBunrui;
+
+# ビューのASキーワードにはどんな意味がありますか？
+ビューの`AS`キーワードには**「定義する」**という意味があります。
+
+## ASの役割
+
+```sql
+CREATE VIEW BunruiCount (カテゴリ, 点数) AS SELECT shohin_bunrui, COUNT(*) FROM Shohin GROUP BY shohin_bunrui;
+```
+
+この`AS`は「BunruiCountビューを、このSELECT文の結果として定義する」という意味です。
+
+## 構文の構造
+
+```
+CREATE VIEW ビュー名 (列名1, 列名2) AS SELECT文;
+           ↑                    ↑
+      ビューの設計図        実際の中身
+```
+
+- **AS より前**：ビューの「外見」（名前と列名）を定義
+- **AS より後**：ビューの「中身」（実際のデータの取得方法）を定義
+
+## 他の場面でのASとの共通点
+
+**列の別名**
+```sql
+SELECT shohin_bunrui AS カテゴリ FROM Shohin;
+-- shohin_bunruiをカテゴリとして表示
+```
+
+**テーブルの別名**
+```sql
+SELECT * FROM Shohin AS S;
+-- ShohinテーブルをSとして参照
+```
+
+どの場面でも`AS`は「〜として定義する/扱う」という意味で使われています。
+
+ビューの場合は「このSELECT文の結果をBunruiCountビューとして定義する」ということを表しているのです。
+
+# サブクエリは一度作って破棄されるとしたら、SELECT文でも同じではないですか？
+確かに、通常のSELECT文もサブクエリも「一度実行されて破棄される」という点では同じです。
+
+## 本当の違いは「複雑さ」と「組み合わせ方」
+
+**単純なSELECT文**
+```sql
+SELECT shohin_mei, hanbai_tanka FROM Shohin;
+```
+
+**サブクエリが必要になる場面**
+```sql
+-- 平均価格を計算してから、それより高い商品を探す
+SELECT shohin_mei, hanbai_tanka 
+FROM Shohin 
+WHERE hanbai_tanka > (SELECT AVG(hanbai_tanka) FROM Shohin);
+```
+
+この場合、単純なSELECT文だけでは実現できません。なぜなら：
+
+1. まず全商品の平均価格を計算する
+2. その結果を使って条件を作る
+3. 条件に合う商品を検索する
+
+という**段階的な処理**が必要だからです。
+
+## つまり、サブクエリは
+
+- 「複数のSELECT文を組み合わせて、1つのクエリで複雑な処理を実現する方法」
+- 単純なSELECT文では表現できない「条件の中に別の検索結果を使う」場合に必要
+
+ご指摘の通り、実行後の「破棄される」という性質は同じですが、**できることの複雑さ**に違いがあるということですね。
