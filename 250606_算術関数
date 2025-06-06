@@ -142,3 +142,5 @@ SUM(price) → sum
 price * 1.1 → ?column? (PostgreSQL)
 price * 1.1 → price * 1.1 (MySQL)
 
+# 仮想的なテーブルだからこそ、列名を定義する必要がある
+
