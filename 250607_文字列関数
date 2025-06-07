@@ -1,0 +1,254 @@
+# 文字列練習用のテーブルを作った
+# str1,2,3の3列あるテーブル
+shop=# SELECT * FROM samplestr;
+     str1     |  str2  | str3
+--------------+--------+------
+ あいう       | えお   |
+ abc          | def    |
+ 山田         | 太郎   | です
+ aaa          |        |
+              | あああ |
+ @!#$%        |        |
+ ABC          |        |
+ aBC          |        |
+ abc太郎      | abc    | ABC
+ abcdefabc    | abc    | ABC
+ ミックマック | ッ     | っ
+(11 行)
+
+# || で文字列を連結する
+shop=# SELECT str1, str2, str1 || str2 || str3 AS 文字列連結 FROM samplestr;
+     str1     |  str2  |    文字列連結
+--------------+--------+------------------
+ あいう       | えお   |
+ abc          | def    |
+ 山田         | 太郎   | 山田太郎です
+ aaa          |        |
+              | あああ |
+ @!#$%        |        |
+ ABC          |        |
+ aBC          |        |
+ abc太郎      | abc    | abc太郎abcABC
+ abcdefabc    | abc    | abcdefabcabcABC
+ ミックマック | ッ     | ミックマックッっ
+(11 行)
+
+# 更に条件を指定
+shop=# SELECT str1, str2, str1 || str2 AS 山田さんの名前がある行 FROM samplestr WHERE str1 = '山田';
+ str1 | str2 | 山田さんの名前がある行
+------+------+------------------------
+ 山田 | 太郎 | 山田太郎
+(1 行)
+
+# 連結したモノだけ出力
+shop=# SELECT str1 || str2 AS 山田さんの名前がある行 FROM samplestr WHERE str1 = '山田';
+ 山田さんの名前がある行
+------------------------
+ 山田太郎
+(1 行)
+
+# 文字列の長さ
+shop=# SELECT str1, LENGTH(str1) AS 文字列の長さ FROM samplestr;
+     str1     | 文字列の長さ
+--------------+--------------
+ あいう       |            3
+ abc          |            3
+ 山田         |            2
+ aaa          |            3
+              |
+ @!#$%        |            5
+ ABC          |            3
+ aBC          |            3
+ abc太郎      |            5
+ abcdefabc    |            9
+ ミックマック |            6
+(11 行)
+
+# 小文字に変換
+hop=# SELECT str1, LOWER(str1) AS 小文字に変換 FROM samplestr;
+     str1     | 小文字に変換
+--------------+--------------
+ あいう       | あいう
+ abc          | abc
+ 山田         | 山田
+ aaa          | aaa
+              |
+ @!#$%        | @!#$%
+ ABC          | abc
+ aBC          | abc
+ abc太郎      | abc太郎
+ abcdefabc    | abcdefabc
+ ミックマック | ミックマック
+(11 行)
+
+# REPLACE関数の使い方
+shop=# SELECT str1, str2, str3, REPLACE(str1, str2, str3) AS 置き換え FROM samplestr;
+     str1     |  str2  | str3 |   置き換え
+--------------+--------+------+--------------
+ あいう       | えお   |      |
+ abc          | def    |      |
+ 山田         | 太郎   | です | 山田
+ aaa          |        |      |
+              | あああ |      |
+ @!#$%        |        |      |
+ ABC          |        |      |
+ aBC          |        |      |
+ abc太郎      | abc    | ABC  | ABC太郎
+ abcdefabc    | abc    | ABC  | ABCdefABC
+ ミックマック | ッ     | っ   | ミっクマっク
+(11 行)
+
+# これはダメみたい
+shop=# SELECT str1, str2, REPLACE(str1, 山田, 鈴木) AS 鈴木へ FROM samplestr;
+ERROR:  列"山田"は存在しません
+行 1: SELECT str1, str2, REPLACE(str1, 山田, 鈴木) AS 鈴木へ FROM ...
+※）PostgreSQLが山田と鈴木を列名として解釈してしまっているから！
+
+# SQLの基本ルール
+文字列リテラル: シングルクォート '文字列' で囲む
+列名・テーブル名: クォートなし、またはダブルクォート "列名" で囲む
+
+# 鈴木さんへと変換する
+shop=# SELECT str1, str2, REPLACE(str1, '山田', '鈴木') AS 鈴木へ FROM samplestr;
+     str1     |  str2  |    鈴木へ
+--------------+--------+--------------
+ あいう       | えお   | あいう
+ abc          | def    | abc
+ 山田         | 太郎   | 鈴木
+ aaa          |        | aaa
+              | あああ |
+ @!#$%        |        | @!#$%
+ ABC          |        | ABC
+ aBC          |        | aBC
+ abc太郎      | abc    | abc太郎
+ abcdefabc    | abc    | abcdefabc
+ ミックマック | ッ     | ミックマック
+(11 行)
+
+# shop'#はどういう意味？
+→文字列リテラルが未完了のため、PostgreSQLが続きの入力を待っている状態
+shop=# SELECT str1, str2, REPLACE(str1, 'a', 'Z) AS Zに変換 FROM samplestr;
+shop'# 
+
+# 文字の入力を間違えた
+このエラーは、PostgreSQLが複数行にわたる不正な文字列として解釈してしまったためです。
+
+## 現在の状況
+PostgreSQLは以下のように解釈しています：
+```sql
+SELECT str1, str2, REPLACE(str1, 'a', 'Z
+'Z';
+') AS Zに変換 FROM samplestr;
+```
+
+これは構文的に正しくないため、エラーが発生しています。
+
+## 解決方法
+
+### 1. 新しいセッションを開始する（推奨）
+- 現在のpsqlセッションを終了：`\q`
+- 新しいセッションで接続し直す
+
+### 2. または、トランザクションをリセット
+```sql
+\c
+```
+これでコマンド入力状態をリセットできます。
+
+### 3. 正しいSQL文を入力
+```sql
+SELECT str1, str2, REPLACE(str1, 'a', 'Z') AS Zに変換 FROM samplestr;
+```
+
+## 今後の対策
+このような状況を避けるために：
+- SQL文を入力する前に、シングルクォートの対応を確認する
+- エラーが起きたらすぐに`\c`でキャンセルする
+- 複雑なSQL文は事前にテキストエディタで確認してからコピー&ペーストする
+
+**まずは `\q` で一度セッションを終了し、新しく接続し直すのが最も確実です。**
+
+# Zへ変換する
+shop=# SELECT str1, str2, REPLACE(str1, 'a', 'Z') AS Zに変換 FROM samplestr;
+     str1     |  str2  |   zに変換
+--------------+--------+--------------
+ あいう       | えお   | あいう
+ abc          | def    | Zbc
+ 山田         | 太郎   | 山田
+ aaa          |        | ZZZ
+              | あああ |
+ @!#$%        |        | @!#$%
+ ABC          |        | ABC
+ aBC          |        | ZBC
+ abc太郎      | abc    | Zbc太郎
+ abcdefabc    | abc    | ZbcdefZbc
+ ミックマック | ッ     | ミックマック
+(11 行)
+
+# SUBSTRING関数で「左から〇文字目を抜き出し」
+shop=# SELECT str1, SUBSTRING(str1 FROM 3 FOR 2) AS 抜き出し FROM samplestr;
+     str1     | 抜き出し
+--------------+----------
+ あいう       | う
+ abc          | c
+ 山田         |
+ aaa          | a
+              |
+ @!#$%        | #$
+ ABC          | C
+ aBC          | C
+ abc太郎      | c太
+ abcdefabc    | cd
+ ミックマック | クマ
+(11 行)
+
+# すごい文字を選択すると、エラーになるのか　→　全部出てくる
+shop=# SELECT str1, SUBSTRING(str1 FROM 3 FOR 100) AS 抜き出し FROM samplestr;
+     str1     | 抜き出し
+--------------+----------
+ あいう       | う
+ abc          | c
+ 山田         |
+ aaa          | a
+              |
+ @!#$%        | #$%
+ ABC          | C
+ aBC          | C
+ abc太郎      | c太郎
+ abcdefabc    | cdefabc
+ ミックマック | クマック
+(11 行)
+
+# 1文字目は0ではなく1
+shop=# SELECT str1, SUBSTRING(str1 FROM 1 FOR 1) AS 抜き出し FROM samplestr;
+     str1     | 抜き出し
+--------------+----------
+ あいう       | あ
+ abc          | a
+ 山田         | 山
+ aaa          | a
+              |
+ @!#$%        | @
+ ABC          | A
+ aBC          | a
+ abc太郎      | a
+ abcdefabc    | a
+ ミックマック | ミ
+(11 行)
+
+# UPPER関数で変換
+shop=# SELECT str1, UPPER(str1) AS 大文字に変換 FROM samplestr;
+     str1     | 大文字に変換
+--------------+--------------
+ あいう       | あいう
+ abc          | ABC
+ 山田         | 山田
+ aaa          | AAA
+              |
+ @!#$%        | @!#$%
+ ABC          | ABC
+ aBC          | ABC
+ abc太郎      | ABC太郎
+ abcdefabc    | ABCDEFABC
+ ミックマック | ミックマック
+(11 行)
