@@ -1,0 +1,92 @@
+# 現在の日付け
+shop=# SELECT CURRENT_DATE;
+ current_date
+--------------
+ 2025-06-08
+(1 行)
+
+# 現在の時刻
+shop=# SELECT CURRENT_TIME;
+    current_time
+--------------------
+ 08:22:44.026596+09
+(1 行)
+
+# SELECTがないとエラーに
+shop=# CURRENT_TIME;
+ERROR:  "CURRENT_TIME"またはその近辺で構文エラー
+行 1: CURRENT_TIME;
+      ^
+
+# このように引数を指定することもできる
+shop=# SELECT CURRENT_TIME(0);
+ current_time
+--------------
+ 08:24:26+09
+(1 行)
+
+# これはないみたい
+shop=# SELECT CURRENT_DATE(0);
+ERROR:  "("またはその近辺で構文エラー
+行 1: SELECT CURRENT_DATE(0);
+                         ^
+
+# 日付と時刻を同時に取得
+shop=# SELECT CURRENT_TIMESTAMP;
+       current_timestamp
+-------------------------------
+ 2025-06-08 08:25:30.056097+09
+(1 行)
+
+# 日付の要素を抜き出す
+# EXTRACTによって、年月日の情報を抜き出すことができる
+shop=# SELECT EXTRACT(YEAR FROM CURRENT_TIMESTAMP);
+ extract
+---------
+    2025
+(1 行)
+
+# 年月日を出力する
+shop=# SELECT EXTRACT(YEAR FROM CURRENT_TIMESTAMP), EXTRACT(MONTH FROM CURRENT_TIMESTAMP), EXTRACT(DAY FROM CURRENT_TIMESTAMP);
+ extract | extract | extract
+---------+---------+---------
+    2025 |       6 |       8
+(1 行)
+
+# SQLのCURRENT_TIMEは引数がない関数ですか？
+はい、**引数がない関数**です。
+
+## CURRENT_TIMEの基本
+```sql
+SELECT CURRENT_TIME;
+-- 結果例: 14:35:22.123456+09:00
+```
+
+## ただし、精度指定が可能
+```sql
+-- 精度指定（秒以下の桁数）
+SELECT CURRENT_TIME(0);  -- 14:35:22+09:00
+SELECT CURRENT_TIME(3);  -- 14:35:22.123+09:00
+SELECT CURRENT_TIME(6);  -- 14:35:22.123456+09:00 (デフォルト)
+```
+
+## 関連する時間関数
+```sql
+CURRENT_DATE        -- 引数なし: 2025-06-08
+CURRENT_TIME        -- 引数なし: 14:35:22.123456+09:00
+CURRENT_TIMESTAMP   -- 引数なし: 2025-06-08 14:35:22.123456+09:00
+NOW()              -- 関数: 2025-06-08 14:35:22.123456+09:00
+```
+
+## 重要なポイント
+- `CURRENT_TIME`は**関数ではなく特別なキーワード**として扱われる
+- **括弧なし**で使用するのが標準的
+- 精度を指定したい場合のみ括弧付きで使用
+
+```sql
+-- 標準的な使い方
+SELECT CURRENT_TIME;
+
+-- 精度指定する場合
+SELECT CURRENT_TIME(0);
+```
