@@ -1,0 +1,70 @@
+# 文字列を数値に変換
+shop=# SELECT CAST ('0001' AS INTEGER) AS 数値への変換;
+ 数値への変換
+--------------
+            1
+(1 行)
+
+# 数値から数値も実行できる
+shop=# SELECT CAST (0001 AS INTEGER) AS 数値への変換;
+ 数値への変換
+--------------
+            1
+(1 行)
+
+# 文字列から日付型へ
+shop=# SELECT CAST('2009-10-11' AS DATE) AS 日付への変換;
+ 日付への変換
+--------------
+ 2009-10-11
+(1 行)
+
+# NULLを文字に
+shop=# SELECT COALESCE (NULL, 1) AS NULLを1に;
+ nullを1に
+-----------
+         1
+(1 行)
+
+# これで仕入れ単価のNULLを0にできるか？
+shop=# SELECT * FROM shohin;
+ shohin_id |   shohin_mei   | shohin_bunrui | hanbai_tanka | shiire_tanka |  torokubi
+-----------+----------------+---------------+--------------+--------------+------------
+ 0001      | Tシャツ        | 衣服          |         1000 |          500 | 2009-09-20
+ 0002      | 穴あけパンチ   | 事務用品      |          500 |          320 | 2009-09-11
+ 0003      | カッターシャツ | 衣服          |         4000 |         2800 |
+ 0004      | 包丁           | キッチン用品  |         3000 |         2800 | 2009-09-20
+ 0005      | 圧力鍋         | キッチン用品  |         6800 |         5000 | 2009-01-15
+ 0006      | フォーク       | キッチン用品  |          500 |              | 2009-09-20
+ 0007      | おろしがね     | キッチン用品  |          880 |          790 | 2008-04-28
+ 0008      | ボールペン     | 事務用品      |          100 |              | 2009-11-11
+(8 行)
+
+# 仕入れ単価を0にする
+shop=# SELECT COALESCE(shiire_tanka, 0) FROM shohin;
+ coalesce
+----------
+      500
+      320
+     2800
+     2800
+     5000
+        0
+      790
+        0
+(8 行)
+
+# 上記を実行しても、元のテーブルには影響はない
+はい、元のテーブルには全く影響ありません。
+なぜ影響がないのか
+SELECT文の特徴
+
+**SELECT文は「読み取り専用」**の操作です
+データを表示するだけで、テーブルの内容は変更しません
+単純に結果を画面に出力しているだけです
+
+# UPDATEする場合はこちらに
+CREATE TABLE shohin_updated AS
+SELECT shohin_id, shohin_mei, shohin_bunrui, hanbai_tanka,
+       COALESCE(shiire_tanka, 0) AS shiire_tanka, torokubi
+FROM shohin;
