@@ -1,0 +1,41 @@
+# テーブルを新しく作った
+shop=# SELECT * FROM samplelike;
+ strcol
+--------
+ abcddd
+ dddabc
+ abdbbc
+ abcdd
+ ddabc
+ abddc
+(6 行)
+
+# LIKEを使うと、文字列を部分一致で調べられる
+# 前方一致検索（dddで始まるモノ）
+shop=# SELECT * FROM samplelike WHERE strcol LIKE 'ddd%';
+ strcol
+--------
+ dddabc
+(1 行)
+
+# 中間一致
+shop=# SELECT * FROM samplelike WHERE strcol LIKE '%ddd%';
+ strcol
+--------
+ abcddd
+ dddabc
+(2 行)
+
+# 後方一致
+shop=# SELECT * FROM samplelike WHERE strcol LIKE 'ddd%';
+ strcol
+--------
+ dddabc
+(1 行)
+
+# _（アンダーバー）で文字数を指定
+shop=# SELECT * FROM samplelike WHERE strcol LIKE 'abc__';
+ strcol
+--------
+ abcdd
+(1 行)
