@@ -1,0 +1,24 @@
+# EXISTS述語の使い方
+shop=# SELECT shohin_mei, hanbai_tanka FROM shohin AS S WHERE EXISTS(SELECT * FROM tenposhohin AS TS WHERE TS.tenpo_id = '000C' AND TS.shohin_id = S.shohin_id);
+   shohin_mei   | hanbai_tanka
+----------------+--------------
+ カッターシャツ |         4000
+ 包丁           |         3000
+ フォーク       |          500
+ おろしがね     |          880
+(4 行)
+
+# ポイント
+・引数は1つだけ
+・常にサブクエリを引数にとる
+
+# SELECT 1と書いても動く
+shop=# SELECT shohin_mei, hanbai_tanka FROM shohin AS S WHERE EXISTS(SELECT 1 FROM tenposhohin AS TS WHERE TS.tenpo_id = '000C' AND TS.shohin_id = S.shohin_id);
+   shohin_mei   | hanbai_tanka
+----------------+--------------
+ カッターシャツ |         4000
+ 包丁           |         3000
+ フォーク       |          500
+ おろしがね     |          880
+(4 行)
+
