@@ -1,0 +1,102 @@
+# 元のテーブル
+shop=# SELECT * FROM shohin;
+ shohin_id |   shohin_mei   | shohin_bunrui | hanbai_tanka | shiire_tanka |  torokubi
+-----------+----------------+---------------+--------------+--------------+------------
+ 0001      | Tシャツ        | 衣服          |         1000 |          500 | 2009-09-20
+ 0002      | 穴あけパンチ   | 事務用品      |          500 |          320 | 2009-09-11
+ 0003      | カッターシャツ | 衣服          |         4000 |         2800 |
+ 0004      | 包丁           | キッチン用品  |         3000 |         2800 | 2009-09-20
+ 0005      | 圧力鍋         | キッチン用品  |         6800 |         5000 | 2009-01-15
+ 0006      | フォーク       | キッチン用品  |          500 |              | 2009-09-20
+ 0007      | おろしがね     | キッチン用品  |          880 |          790 | 2008-04-28
+ 0008      | ボールペン     | 事務用品      |          100 |              | 2009-11-11
+(8 行)
+
+# まずはCASE式を書く
+shop=# SELECT CASE WHEN shohin_bunrui = '衣服' THEN 'これは衣服です' ELSE 'これは衣服ではありません' END FROM shohin;
+           case
+--------------------------
+ これは衣服です
+ これは衣服ではありません
+ これは衣服です
+ これは衣服ではありません
+ これは衣服ではありません
+ これは衣服ではありません
+ これは衣服ではありません
+ これは衣服ではありません
+(8 行)
+
+・判定をして、ヒットしたモノが出るのがわかった
+
+# 500円の判定をしてみる
+shop=# SELECT shohin_bunrui, CASE WHEN hanbai_tanka >= 500 THEN '500円以上の商品です' ELSE '500円以下の商品です' END FROM shohin;
+ shohin_bunrui |        case
+---------------+---------------------
+ 衣服          | 500円以上の商品です
+ 事務用品      | 500円以上の商品です
+ 衣服          | 500円以上の商品です
+ キッチン用品  | 500円以上の商品です
+ キッチン用品  | 500円以上の商品です
+ キッチン用品  | 500円以上の商品です
+ キッチン用品  | 500円以上の商品です
+ 事務用品      | 500円以下の商品です
+(8 行)
+
+# 同じことをWHERE句でできないか
+shop=# SELECT shohin_bunrui, CASE WHEN hanbai_tanka >= 500 THEN '500円以上の商品です' ELSE NULL END FROM shohin;
+ shohin_bunrui |        case
+---------------+---------------------
+ 衣服          | 500円以上の商品です
+ 事務用品      | 500円以上の商品です
+ 衣服          | 500円以上の商品です
+ キッチン用品  | 500円以上の商品です
+ キッチン用品  | 500円以上の商品です
+ キッチン用品  | 500円以上の商品です
+ キッチン用品  | 500円以上の商品です
+ 事務用品      |
+(8 行)
+
+# 合計を出力
+shop=# SELECT shohin_bunrui, SUM(hanbai_tanka) AS 単価の合計 FROM shohin GROUP BY shohin_bunrui;
+ shohin_bunrui | 単価の合計
+---------------+------------
+ キッチン用品  |      11180
+ 衣服          |       5000
+ 事務用品      |        600
+(3 行)
+
+# これを行列変換する
+ 衣服の合計単価 | キッチン用品の合計単価 | 事務用品の合計単価
+----------------+------------------------+--------------------
+           5000 |                  11180 |                600
+(1 行)
+
+# SJISに変換して、サクラエディタのコードを保存した
+SELECT SUM(CASE WHEN shohin_bunrui = '衣服'
+				THEN hanbai_tanka ELSE 0 END) AS 衣服の合計単価,
+		SUM(CASE WHEN shohin_bunrui = 'キッチン用品'
+				THEN hanbai_tanka ELSE 0 END) AS キッチン用品の合計単価,
+		SUM(CASE WHEN shohin_bunrui = '事務用品'
+				THEN hanbai_tanka ELSE 0 END) AS 事務用品の合計単価
+FROM shohin;
+
+# コマンドラインで改行もできる（まずは1行だけ書いた）
+shop(# THEN hanbai_tanka ELSE 0 END) AS 衣服の合計単価
+shop-# FROM Shohin;
+ 衣服の合計単価
+----------------
+           5000
+(1 行)
+
+# まとめた
+shop=# SELECT SUM(CASE WHEN shohin_bunrui = '衣服'
+shop(# THEN hanbai_tanka ELSE 0 END) AS 衣服の合計単価,
+shop-# SUM (CASE WHEN shohin_bunrui = 'キッチン用品'
+shop(# THEN hanbai_tanka ELSE 0 END) AS キッチン用品の合計単価,
+shop-# SUM (CASE WHEN shohin_bunrui = '事務用品'
+shop(# THEN hanbai_tanka ELSE 0 END) AS 事務用品の合計単価
+shop-# FROM Shohin;
+ 衣服の合計単価 | キッチン用品の合計単価 | 事務用品の合計単価
+----------------+------------------------+--------------------
+           5000 |                  11180 |                600
+(1 行)
