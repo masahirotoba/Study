@@ -1,0 +1,126 @@
+# Shohin2という新しいテーブルを作る
+shop=# SELECT * FROM shohin2;
+ shohin_id |   shohin_mei   | shohin_bunrui | hanbai_tanka | shiire_tanka |  torokubi
+-----------+----------------+---------------+--------------+--------------+------------
+ 0001      | Tシャツ        | 衣服          |         1000 |          500 | 2009-09-20
+ 0002      | 穴あけパンチ   | 事務用品      |          500 |          320 | 2009-09-11
+ 0003      | カッターシャツ | 衣服          |         4000 |         2800 |
+ 0009      | 手袋           | 衣服          |          800 |          500 |
+ 0010      | やかん         | キッチン用品  |         2000 |         1700 | 2009-09-20
+(5 行)
+
+# UNIONで2つのテーブルを足す
+shop=# SELECT shohin_id, shohin_mei FROM shohin UNION SELECT shohin_id, shohin_mei FROM shohin2;
+ shohin_id |   shohin_mei
+-----------+----------------
+ 0006      | フォーク
+ 0009      | 手袋
+ 0005      | 圧力鍋
+ 0007      | おろしがね
+ 0008      | ボールペン
+ 0002      | 穴あけパンチ
+ 0001      | Tシャツ
+ 0003      | カッターシャツ
+ 0004      | 包丁
+ 0010      | やかん
+(10 行)
+
+# 順番をきちんと並び替える
+shop=# SELECT shohin_id, shohin_mei FROM shohin UNION SELECT shohin_id, shohin_mei FROM shohin2 ORDER BY shohin_id;
+ shohin_id |   shohin_mei
+-----------+----------------
+ 0001      | Tシャツ
+ 0002      | 穴あけパンチ
+ 0003      | カッターシャツ
+ 0004      | 包丁
+ 0005      | 圧力鍋
+ 0006      | フォーク
+ 0007      | おろしがね
+ 0008      | ボールペン
+ 0009      | 手袋
+ 0010      | やかん
+(10 行)
+
+# 別々のモノは足せる？
+shop=# SELECT shohin_id, shohin_mei FROM shohin UNION SELECT shohin_id, shohin_bunrui FROM shohin2 ORDER BY shohin_id;
+ shohin_id |   shohin_mei
+-----------+----------------
+ 0001      | Tシャツ
+ 0001      | 衣服
+ 0002      | 穴あけパンチ
+ 0002      | 事務用品
+ 0003      | カッターシャツ
+ 0003      | 衣服
+ 0004      | 包丁
+ 0005      | 圧力鍋
+ 0006      | フォーク
+ 0007      | おろしがね
+ 0008      | ボールペン
+ 0009      | 衣服
+ 0010      | キッチン用品
+(13 行)
+
+# UNIONの制約
+- 列数が同じである必要がある
+- データ型が互換性がある必要がある
+- 列名は最初のSELECT文のものが使われる
+
+# 例えば在庫切れと廃盤を同じように出せる
+SELECT shohin_id, '在庫切れ' as status FROM zaiko WHERE zaiko_suu = 0
+UNION
+SELECT shohin_id, '廃番' as status FROM haiban_shohin;
+
+# データ型が異なると出力できないので注意
+shop=# SELECT shohin_id, shohin_mei FROM shohin UNION SELECT shohin_id, hanbai_tanka FROM shohin2 ORDER BY shohin_id;
+ERROR:  UNIONの型character varyingとintegerを一致させることができません
+行 1: ...d, shohin_mei FROM shohin UNION SELECT shohin_id, hanbai_tan...
+
+# ASを付けると、ORDER BYの列が存在しなくなってしまうので、コレはできない
+shop=# SELECT shohin_id AS 商品ID, shohin_mei AS 商品名 FROM shohin UNION SELECT shohin_id, shohin_mei FROM shohin2 ORDER BY shohin_id;
+ERROR:  列"shohin_id"は存在しません
+行 1: ...ELECT shohin_id, shohin_mei FROM shohin2 ORDER BY shohin_id;
+                                                           ^
+DETAIL:  テーブル"*SELECT* 2"には"shohin_id"という名前の列がありますが、問い合わせのこの部分からは参照できません。
+
+# ORDER BYの指定方法を変えればできる
+shop=# SELECT shohin_id AS 商品ID, shohin_mei AS 商品名 FROM shohin UNION SELECT shohin_id, shohin_mei FROM shohin2 ORDER BY 商品ID;
+ 商品id |     商品名
+--------+----------------
+ 0001   | Tシャツ
+ 0002   | 穴あけパンチ
+ 0003   | カッターシャツ
+ 0004   | 包丁
+ 0005   | 圧力鍋
+ 0006   | フォーク
+ 0007   | おろしがね
+ 0008   | ボールペン
+ 0009   | 手袋
+ 0010   | やかん
+(10 行)
+
+# 列数が異なるとダメ
+shop=# SELECT shohin_id, shohin_mei FROM shohin UNION SELECT shohin_id, shohin_mei, hanbai_tanka FROM shohin2;
+ERROR:  すべてのUNION問い合わせは同じ列数を返す必要があります
+行 1: ...CT shohin_id, shohin_mei FROM shohin UNION SELECT shohin_id,...
+                                                           ^
+# WHEREで条件も指定できる
+shop=# SELECT shohin_id, shohin_mei FROM shohin WHERE shohin_bunrui = 'キッチン用品' UNION SELECT shohin_id, shohin_mei FROM shohin2 WHERE shohin_bunrui = 'キッチン用品';
+ shohin_id | shohin_mei
+-----------+------------
+ 0004      | 包丁
+ 0005      | 圧力鍋
+ 0006      | フォーク
+ 0007      | おろしがね
+ 0010      | やかん
+(5 行)
+
+# WHERE句の条件を変えることも可能
+shop=# SELECT shohin_id, shohin_mei FROM shohin WHERE shohin_bunrui = 'キッチン用品' UNION SELECT shohin_id, shohin_mei FROM shohin2 WHERE shohin_bunrui = '事務用品';
+ shohin_id |  shohin_mei
+-----------+--------------
+ 0002      | 穴あけパンチ
+ 0004      | 包丁
+ 0005      | 圧力鍋
+ 0006      | フォーク
+ 0007      | おろしがね
+(5 行)
