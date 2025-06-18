@@ -1,0 +1,25 @@
+# JOINの書き方だけ復習した
+shop=# SELECT tenposhohin.tenpo_mei, shohin.shohin_mei, tenposhohin.suryo
+shop-# FROM tenposhohin INNER JOIN shohin
+shop-# ON tenposhohin.shohin_id = shohin.shohin_id;
+ tenpo_mei |   shohin_mei   | suryo
+-----------+----------------+-------
+ 東京      | Tシャツ        |    30
+ 東京      | 穴あけパンチ   |    50
+ 東京      | カッターシャツ |    15
+ 名古屋    | 穴あけパンチ   |    30
+ 名古屋    | カッターシャツ |   120
+ 名古屋    | 包丁           |    20
+ 名古屋    | フォーク       |    10
+ 名古屋    | おろしがね     |    40
+ 大阪      | カッターシャツ |    20
+ 大阪      | 包丁           |    50
+ 大阪      | フォーク       |    90
+ 大阪      | おろしがね     |    70
+ 福岡      | Tシャツ        |   100
+(13 行)
+
+# なぜONが必要なのか
+JOINのON句には「どの条件で2つのテーブルを結合するか」を指定する役割があります。
+ON句がないと、SQLエンジンは「どの基準で結合すればいいのか分からない」ためエラーになります。
+つまりON句は2つのテーブルをつなぐ「橋渡し」の条件を定義する重要な部分です。
