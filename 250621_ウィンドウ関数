@@ -1,0 +1,109 @@
+# ウィンドウ関数を使っていく
+shop=# SELECT * FROM shohin;
+ shohin_id |   shohin_mei   | shohin_bunrui | hanbai_tanka | shiire_tanka |  torokubi
+-----------+----------------+---------------+--------------+--------------+------------
+ 0001      | Tシャツ        | 衣服          |         1000 |          500 | 2009-09-20
+ 0002      | 穴あけパンチ   | 事務用品      |          500 |          320 | 2009-09-11
+ 0003      | カッターシャツ | 衣服          |         4000 |         2800 |
+ 0004      | 包丁           | キッチン用品  |         3000 |         2800 | 2009-09-20
+ 0005      | 圧力鍋         | キッチン用品  |         6800 |         5000 | 2009-01-15
+ 0006      | フォーク       | キッチン用品  |          500 |              | 2009-09-20
+ 0007      | おろしがね     | キッチン用品  |          880 |          790 | 2008-04-28
+ 0008      | ボールペン     | 事務用品      |          100 |              | 2009-11-11
+(8 行)
+
+# 順位で並び替え
+shop=# SELECT shohin_mei, shohin_bunrui, hanbai_tanka,
+shop-# RANK () OVER (PARTITION BY shohin_bunrui ORDER BY hanbai_tanka) FROM shohin;
+   shohin_mei   | shohin_bunrui | hanbai_tanka | rank
+----------------+---------------+--------------+------
+ フォーク       | キッチン用品  |          500 |    1
+ おろしがね     | キッチン用品  |          880 |    2
+ 包丁           | キッチン用品  |         3000 |    3
+ 圧力鍋         | キッチン用品  |         6800 |    4
+ Tシャツ        | 衣服          |         1000 |    1
+ カッターシャツ | 衣服          |         4000 |    2
+ ボールペン     | 事務用品      |          100 |    1
+ 穴あけパンチ   | 事務用品      |          500 |    2
+(8 行)
+
+# OVERの役割について
+RANK関数の引数ではない
+SELECTやFROMと同じで構文キーワードであり、ウィンドウ関数の範囲を指定する
+
+# 構文キーワードの特徴
+予約語：SQLで特別な意味を持つ
+位置が決まっている：書く場所が決められている
+関数ではない：括弧や引数は不要（OVERの場合は後に括弧が続くが、OVER自体は関数ではない）
+
+# PARTITIONをなくしたパターン
+shop=# SELECT shohin_mei, shohin_bunrui, hanbai_tanka,
+shop-# RANK () OVER (ORDER BY hanbai_tanka) FROM shohin;
+   shohin_mei   | shohin_bunrui | hanbai_tanka | rank
+----------------+---------------+--------------+------
+ ボールペン     | 事務用品      |          100 |    1
+ フォーク       | キッチン用品  |          500 |    2
+ 穴あけパンチ   | 事務用品      |          500 |    2
+ おろしがね     | キッチン用品  |          880 |    4
+ Tシャツ        | 衣服          |         1000 |    5
+ 包丁           | キッチン用品  |         3000 |    6
+ カッターシャツ | 衣服          |         4000 |    7
+ 圧力鍋         | キッチン用品  |         6800 |    8
+(8 行)
+
+# PARTITION BYをなくすと、全商品が1つのグループになる
+PARTITION BYをなくすと、全商品を1つのグループとして、価格順にランキングが付けられます。
+何が起こったか
+sqlRANK() OVER (ORDER BY hanbai_tanka)
+-- PARTITION BY が抜けている
+PARTITION BYなし = 全データを1つのグループとして扱う
+
+# ORDER BYをなくすと、全部が1位になる
+RANK()関数は順序に基づいてランキングを付ける関数です
+ORDER BYがないと、「何を基準に順序を決めるか」が分からない
+そのため、同じグループ内の全ての行が**同じランク（1位）**になってしまいます
+
+# ORDER BYをなくした場合
+shop=# SELECT shohin_mei, shohin_bunrui, hanbai_tanka,
+shop-# RANK () OVER (PARTITION BY shohin_bunrui) FROM shohin;
+   shohin_mei   | shohin_bunrui | hanbai_tanka | rank
+----------------+---------------+--------------+------
+ 圧力鍋         | キッチン用品  |         6800 |    1
+ フォーク       | キッチン用品  |          500 |    1
+ おろしがね     | キッチン用品  |          880 |    1
+ 包丁           | キッチン用品  |         3000 |    1
+ Tシャツ        | 衣服          |         1000 |    1
+ カッターシャツ | 衣服          |         4000 |    1
+ 穴あけパンチ   | 事務用品      |          500 |    1
+ ボールペン     | 事務用品      |          100 |    1
+(8 行)
+
+# DENSE_RANK（同率があっても次の順位をスキップしない）
+shop=# SELECT shohin_mei, shohin_bunrui, hanbai_tanka,
+shop-# DENSE_RANK () OVER (ORDER BY hanbai_tanka) FROM shohin;
+   shohin_mei   | shohin_bunrui | hanbai_tanka | dense_rank
+----------------+---------------+--------------+------------
+ ボールペン     | 事務用品      |          100 |          1
+ フォーク       | キッチン用品  |          500 |          2
+ 穴あけパンチ   | 事務用品      |          500 |          2
+ おろしがね     | キッチン用品  |          880 |          3
+ Tシャツ        | 衣服          |         1000 |          4
+ 包丁           | キッチン用品  |         3000 |          5
+ カッターシャツ | 衣服          |         4000 |          6
+ 圧力鍋         | キッチン用品  |         6800 |          7
+(8 行)
+
+# ユニークな番号を割り当てる
+shop=# SELECT shohin_mei, shohin_bunrui, hanbai_tanka,
+shop-# ROW_NUMBER () OVER(ORDER BY hanbai_tanka) FROM shohin;
+   shohin_mei   | shohin_bunrui | hanbai_tanka | row_number
+----------------+---------------+--------------+------------
+ ボールペン     | 事務用品      |          100 |          1
+ フォーク       | キッチン用品  |          500 |          2
+ 穴あけパンチ   | 事務用品      |          500 |          3
+ おろしがね     | キッチン用品  |          880 |          4
+ Tシャツ        | 衣服          |         1000 |          5
+ 包丁           | キッチン用品  |         3000 |          6
+ カッターシャツ | 衣服          |         4000 |          7
+ 圧力鍋         | キッチン用品  |         6800 |          8
+(8 行)
