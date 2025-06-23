@@ -1,0 +1,140 @@
+# 通常のGROUP BY句
+shop=# SELECT shohin_bunrui, SUM(hanbai_tanka) FROM shohin GROUP BY shohin_bunrui;
+ shohin_bunrui |  sum
+---------------+-------
+ キッチン用品  | 11180
+ 衣服          |  5000
+ 事務用品      |   600
+(3 行)
+
+# SELECTを2回実行して、UNION ALLでくっつける
+　→別々のSQLを2回実行しただけ
+shop=# SELECT '合計' AS shohin_bunrui, SUM(hanbai_tanka) FROM shohin
+shop-# UNION ALL
+shop-# SELECT shohin_bunrui, SUM(hanbai_tanka) FROM shohin GROUP BY shohin_bunrui;
+ shohin_bunrui |  sum
+---------------+-------
+ 合計          | 16780
+ キッチン用品  | 11180
+ 衣服          |  5000
+ 事務用品      |   600
+(4 行)
+
+# そもそもUNIONはこんな仕組みに
+shop=# SELECT shohin_id, shohin_mei FROM shohin
+shop-# UNION
+shop-# SELECT shohin_id, shohin_mei FROM shohin2;
+ shohin_id |   shohin_mei
+-----------+----------------
+ 0006      | フォーク
+ 0009      | 手袋
+ 0005      | 圧力鍋
+ 0007      | おろしがね
+ 0008      | ボールペン
+ 0002      | 穴あけパンチ
+ 0001      | Tシャツ
+ 0003      | カッターシャツ
+ 0004      | 包丁
+ 0010      | やかん
+(10 行)
+
+# UNION ALLはこれ（SELECT文をくっつけることができる）
+shop=# SELECT shohin_id, shohin_mei FROM shohin
+shop-# UNION ALL
+shop-# SELECT shohin_id, shohin_mei FROM shohin2;
+ shohin_id |   shohin_mei
+-----------+----------------
+ 0001      | Tシャツ
+ 0002      | 穴あけパンチ
+ 0003      | カッターシャツ
+ 0004      | 包丁
+ 0005      | 圧力鍋
+ 0006      | フォーク
+ 0007      | おろしがね
+ 0008      | ボールペン
+ 0001      | Tシャツ
+ 0002      | 穴あけパンチ
+ 0003      | カッターシャツ
+ 0009      | 手袋
+ 0010      | やかん
+(13 行)
+
+# INNER JOINも復習する
+shop=# SELECT tenposhohin.tenpo_mei, shohin.shohin_mei, tenposhohin.suryo
+shop-# FROM tenposhohin INNER JOIN shohin
+shop-# ON tenposhohin.shohin_id = shohin.shohin_id;
+ tenpo_mei |   shohin_mei   | suryo
+-----------+----------------+-------
+ 東京      | Tシャツ        |    30
+ 東京      | 穴あけパンチ   |    50
+ 東京      | カッターシャツ |    15
+ 名古屋    | 穴あけパンチ   |    30
+ 名古屋    | カッターシャツ |   120
+ 名古屋    | 包丁           |    20
+ 名古屋    | フォーク       |    10
+ 名古屋    | おろしがね     |    40
+ 大阪      | カッターシャツ |    20
+ 大阪      | 包丁           |    50
+ 大阪      | フォーク       |    90
+ 大阪      | おろしがね     |    70
+ 福岡      | Tシャツ        |   100
+(13 行)
+
+# ROLL UPで「合計行」を出す
+shop=# SELECT shohin_bunrui, SUM(hanbai_tanka) FROM shohin GROUP BY ROLLUP(shohin_bunrui);
+ shohin_bunrui |  sum
+---------------+-------
+               | 16780
+ キッチン用品  | 11180
+ 衣服          |  5000
+ 事務用品      |   600
+(4 行)
+
+# 登録日を集約キーに追加
+shop=# SELECT shohin_bunrui, torokubi, SUM(hanbai_tanka)
+shop-# FROM shohin GROUP BY shohin_bunrui, torokubi;
+ shohin_bunrui |  torokubi  | sum
+---------------+------------+------
+ 衣服          |            | 4000
+ キッチン用品  | 2009-01-15 | 6800
+ 衣服          | 2009-09-20 | 1000
+ キッチン用品  | 2008-04-28 |  880
+ 事務用品      | 2009-11-11 |  100
+ 事務用品      | 2009-09-11 |  500
+ キッチン用品  | 2009-09-20 | 3500
+(7 行)
+
+# ROLL UPを追加
+shop=# SELECT shohin_bunrui, torokubi, SUM(hanbai_tanka)
+shop-# FROM shohin GROUP BY ROLLUP(shohin_bunrui, torokubi);
+ shohin_bunrui |  torokubi  |  sum
+---------------+------------+-------
+               |            | 16780
+ 衣服          |            |  4000
+ キッチン用品  | 2009-01-15 |  6800
+ 衣服          | 2009-09-20 |  1000
+ キッチン用品  | 2008-04-28 |   880
+ 事務用品      | 2009-11-11 |   100
+ 事務用品      | 2009-09-11 |   500
+ キッチン用品  | 2009-09-20 |  3500
+ キッチン用品  |            | 11180
+ 衣服          |            |  5000
+ 事務用品      |            |   600
+(11 行)
+
+# こんな仕組みになっている
+-- レベル3：全体合計
+               |            | 16780  ← 全商品の合計
+
+-- レベル2：商品分類別の小計  
+ 衣服          |            |  5000  ← 衣服全体の小計
+ キッチン用品  |            | 11180  ← キッチン用品全体の小計
+ 事務用品      |            |   600  ← 事務用品全体の小計
+
+-- レベル1：商品分類+登録日別の詳細
+ 衣服          | 2009-09-20 |  1000  ← 衣服×2009-09-20
+ キッチン用品  | 2009-01-15 |  6800  ← キッチン用品×2009-01-15
+ キッチン用品  | 2008-04-28 |   880  ← キッチン用品×2008-04-28
+ 事務用品      | 2009-11-11 |   100  ← 事務用品×2009-11-11
+ 事務用品      | 2009-09-11 |   500  ← 事務用品×2009-09-11
+ キッチン用品  | 2009-09-20 |  3500  ← キッチン用品×2009-09-20
